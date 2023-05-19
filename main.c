@@ -4,15 +4,15 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <signal.h>
+#define ROOT "./test"
 #include <time.h>
 #include <dirent.h>
-#include <string.h>
 
 void signalHandler(int sig) {
     // Manejar señales aquí
 }
 
-void copyFile(char* sourcePath,char* destPath) {
+void copyFile(const char* sourcePath, const char* destPath) {
     FILE* sourceFile = fopen(sourcePath, "rb");
     FILE* destFile = fopen(destPath, "wb");
 
@@ -29,7 +29,7 @@ void copyFile(char* sourcePath,char* destPath) {
     fclose(destFile);
 }
 
-void copyDirectory(char* sourceDir, char* destDir) {
+void copyDirectory(const char* sourceDir, const char* destDir) {
     DIR* dir;
     struct dirent* entry;
 
@@ -69,40 +69,41 @@ void copyDirectory(char* sourceDir, char* destDir) {
 }
 
 
-int runDeamon(char* rootDir, char* backupDir){
+int runDeamon(){
 
     struct stat fileStat;
     
-    if (stat(rootDir,&fileStat) == -1){
+    if (stat(ROOT,&fileStat) == -1){
         return 1;
     }
 
     time_t modifiedTime = fileStat.st_mtime;
     
+    char *backUpRoute = "./.test_backup";
 
     DIR *dir;
 
-    dir = opendir(backupDir);
+    dir = opendir(backUpRoute);
     if (dir == NULL){
-        mkdir(backupDir);
-        copyDirectory(rootDir,backupDir);
+        mkdir(backUpRoute);
+        copyDirectory(ROOT,backUpRoute);
     }
     else{
         struct stat fileStatBackup;
 
-        if (stat(backupDir,&fileStatBackup) == -1){
+        if (stat(backUpRoute,&fileStatBackup) == -1){
             return 1;
         }
 
         time_t modifiedTimeBackup = fileStatBackup.st_mtime;
 
         if (modifiedTime > modifiedTimeBackup){
-           copyDirectory(rootDir,backupDir);
+           copyDirectory(ROOT,backUpRoute);
         }
         else{
             DIR * rootDir;
             struct dirent* entry;
-            rootDir = opendir(rootDir);
+            rootDir = opendir(ROOT);
             entry = readdir(rootDir);
             time_t modifiedTimeEntry;
 
@@ -117,7 +118,7 @@ int runDeamon(char* rootDir, char* backupDir){
             } while((entry = readdir(rootDir)) != NULL && modifiedTimeEntry <= modifiedTimeBackup);
             
             if (entry != NULL)
-                copyDirectory(rootDir,backupDir);
+                copyDirectory(ROOT,backUpRoute);
                        
         }
     }
@@ -127,16 +128,7 @@ int runDeamon(char* rootDir, char* backupDir){
 }
 
 
-
-int main(int argc, char *argv[]) {
-
-    char* rootDir;
-    char* backupDir;
-
-    rootDir = argv[1];
-    backupDir = argv[2];
-    
-    printf("%s %s", rootDir, backupDir);
+int main() {
     // // Crear un nuevo proceso
     // pid_t pid = fork();
 
@@ -171,7 +163,7 @@ int main(int argc, char *argv[]) {
 
     // // Bucle principal del daemon
     while (1) {
-        runDeamon(rootDir,backupDir);
+        runDeamon();
 
         sleep(5);  // Ejemplo: Esperar 1 segundo antes de repetir el bucle
     }

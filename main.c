@@ -7,12 +7,13 @@
 #define ROOT "./test"
 #include <time.h>
 #include <dirent.h>
+#include <string.h>
 
 void signalHandler(int sig) {
     // Manejar señales aquí
 }
 
-void copyFile(const char* sourcePath, const char* destPath) {
+void copyFile(char* sourcePath, char* destPath) {
     FILE* sourceFile = fopen(sourcePath, "rb");
     FILE* destFile = fopen(destPath, "wb");
 
@@ -29,7 +30,7 @@ void copyFile(const char* sourcePath, const char* destPath) {
     fclose(destFile);
 }
 
-void copyDirectory(const char* sourceDir, const char* destDir) {
+void copyDirectory(char* sourceDir, char* destDir) {
     DIR* dir;
     struct dirent* entry;
 
@@ -103,18 +104,18 @@ int runDeamon(){
         else{
             DIR * rootDir;
             struct dirent* entry;
+            struct stat st;
             rootDir = opendir(ROOT);
             entry = readdir(rootDir);
             time_t modifiedTimeEntry;
 
             do{
                 char path[256];
-                snprintf(path, sizeof(rootDir), "%s/%s", rootDir, entry->d_name);
-                struct stat st;
+                snprintf(path, sizeof(path), "%s/%s", ROOT, entry->d_name);
 
                 stat(path,&st);
                 modifiedTimeEntry = st.st_mtime;
-
+                printf("path:%s %d %d \n ",path,modifiedTimeEntry, modifiedTimeBackup);
             } while((entry = readdir(rootDir)) != NULL && modifiedTimeEntry <= modifiedTimeBackup);
             
             if (entry != NULL)

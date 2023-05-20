@@ -69,6 +69,32 @@ void copyDirectory(char* sourceDir, char* destDir) {
     closedir(dir);
 }
 
+int isModified(struct dirent* entry,DIR* rootDir,char* actualPath,time_t modifiedTimeBackup){
+    time_t modifiedTimeEntry;
+    struct stat st;
+
+    do{
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+        char path[256];
+        snprintf(path, sizeof(path), "%s/%s", actualPath, entry->d_name);
+        if (stat(path, &st) == 0 && S_ISDIR(st.st_mode)){
+            DIR* actualDir = opendir(path);
+            entry = readdir(actualDir);
+            if (entry != NULL)
+                if (isModified(entry,actualDir,path,modifiedTimeBackup))
+                    return 1;
+        }
+        modifiedTimeEntry = st.st_mtime;
+    } while((entry = readdir(rootDir)) != NULL && modifiedTimeEntry <= modifiedTimeBackup);
+
+    if (modifiedTimeEntry > modifiedTimeBackup)
+        return 1;
+    else
+        return 0;
+    
+}
 
 int runDeamon(){
 
@@ -90,13 +116,26 @@ int runDeamon(){
         copyDirectory(ROOT,backUpRoute);
     }
     else{
+        //obtenemos timestamp de carpeta Backup
         struct stat fileStatBackup;
 
         if (stat(backUpRoute,&fileStatBackup) == -1){
             return 1;
         }
-
         time_t modifiedTimeBackup = fileStatBackup.st_mtime;
+        struct dirent* entryBckp;
+        entryBckp = readdir(dir);
+        if (entryBckp != NULL){
+            struct stat st;
+            char sourcePath[256];
+            snprintf(sourcePath, sizeof(sourcePath), "%s/%s", backUpRoute, entryBckp->d_name);
+            while(stat(sourcePath, &st) == 0 && S_ISDIR(st.st_mode)){
+                entryBckp = readdir(dir);
+                snprintf(sourcePath, sizeof(sourcePath), "%s/%s", backUpRoute, entryBckp->d_name);
+            }
+            modifiedTimeBackup = st.st_mtime;
+        }
+        //obtenemos timestamp de carpeta Backup
 
         if (modifiedTime > modifiedTimeBackup){
            copyDirectory(ROOT,backUpRoute);
@@ -109,24 +148,14 @@ int runDeamon(){
             entry = readdir(rootDir);
             time_t modifiedTimeEntry;
 
-            do{
-                char path[256];
-                snprintf(path, sizeof(path), "%s/%s", ROOT, entry->d_name);
-
-                stat(path,&st);
-                modifiedTimeEntry = st.st_mtime;
-                printf("path:%s %d %d \n ",path,modifiedTimeEntry, modifiedTimeBackup);
-            } while((entry = readdir(rootDir)) != NULL && modifiedTimeEntry <= modifiedTimeBackup);
-            
-            if (entry != NULL)
+            if (isModified(entry,rootDir,ROOT,modifiedTimeBackup))
                 copyDirectory(ROOT,backUpRoute);
                        
         }
     }
-
     return 0;
-
 }
+
 
 
 int main() {

@@ -4,7 +4,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <signal.h>
-#define ROOT "./test"
+// #define sourcePath "./test"
 #include <time.h>
 #include <dirent.h>
 #include <string.h>
@@ -69,7 +69,7 @@ void copyDirectory(char* sourceDir, char* destDir) {
     closedir(dir);
 }
 
-int isModified(struct dirent* entry,DIR* rootDir,char* actualPath,time_t modifiedTimeBackup){
+int isModified(struct dirent* entry,DIR* sourcePathDir,char* actualPath,time_t modifiedTimeBackup){
     time_t modifiedTimeEntry;
     struct stat st;
 
@@ -87,7 +87,7 @@ int isModified(struct dirent* entry,DIR* rootDir,char* actualPath,time_t modifie
                     return 1;
         }
         modifiedTimeEntry = st.st_mtime;
-    } while((entry = readdir(rootDir)) != NULL && modifiedTimeEntry <= modifiedTimeBackup);
+    } while((entry = readdir(sourcePathDir)) != NULL && modifiedTimeEntry <= modifiedTimeBackup);
 
     if (modifiedTimeEntry > modifiedTimeBackup)
         return 1;
@@ -96,30 +96,30 @@ int isModified(struct dirent* entry,DIR* rootDir,char* actualPath,time_t modifie
     
 }
 
-int runDeamon(){
+int runDeamon(char* sourcePath, char* destinationPath){
 
     struct stat fileStat;
     
-    if (stat(ROOT,&fileStat) == -1){
+    if (stat(sourcePath,&fileStat) == -1){
         return 1;
     }
 
     time_t modifiedTime = fileStat.st_mtime;
     
-    char *backUpRoute = "./.test_backup";
+    // char *destinationPath = "./.test_backup";
 
     DIR *dir;
 
-    dir = opendir(backUpRoute);
+    dir = opendir(destinationPath);
     if (dir == NULL){
-        mkdir(backUpRoute);
-        copyDirectory(ROOT,backUpRoute);
+        mkdir(destinationPath);
+        copyDirectory(sourcePath,destinationPath);
     }
     else{
         //obtenemos timestamp de carpeta Backup
         struct stat fileStatBackup;
 
-        if (stat(backUpRoute,&fileStatBackup) == -1){
+        if (stat(destinationPath,&fileStatBackup) == -1){
             return 1;
         }
         time_t modifiedTimeBackup = fileStatBackup.st_mtime;
@@ -128,28 +128,28 @@ int runDeamon(){
         if (entryBckp != NULL){
             struct stat st;
             char sourcePath[256];
-            snprintf(sourcePath, sizeof(sourcePath), "%s/%s", backUpRoute, entryBckp->d_name);
+            snprintf(sourcePath, sizeof(sourcePath), "%s/%s", destinationPath, entryBckp->d_name);
             while(stat(sourcePath, &st) == 0 && S_ISDIR(st.st_mode)){
                 entryBckp = readdir(dir);
-                snprintf(sourcePath, sizeof(sourcePath), "%s/%s", backUpRoute, entryBckp->d_name);
+                snprintf(sourcePath, sizeof(sourcePath), "%s/%s", destinationPath, entryBckp->d_name);
             }
             modifiedTimeBackup = st.st_mtime;
         }
         //obtenemos timestamp de carpeta Backup
 
         if (modifiedTime > modifiedTimeBackup){
-           copyDirectory(ROOT,backUpRoute);
+           copyDirectory(sourcePath,destinationPath);
         }
         else{
-            DIR * rootDir;
+            DIR * sourcePathDir;
             struct dirent* entry;
             struct stat st;
-            rootDir = opendir(ROOT);
-            entry = readdir(rootDir);
+            sourcePathDir = opendir(sourcePath);
+            entry = readdir(sourcePathDir);
             time_t modifiedTimeEntry;
 
-            if (isModified(entry,rootDir,ROOT,modifiedTimeBackup))
-                copyDirectory(ROOT,backUpRoute);
+            if (isModified(entry,sourcePathDir,sourcePath,modifiedTimeBackup))
+                copyDirectory(sourcePath,destinationPath);
                        
         }
     }
@@ -158,7 +158,9 @@ int runDeamon(){
 
 
 
-int main() {
+int main(int argc, char* argv[]) {
+    char* sourcePath = argv[1];
+    char* destinationPath = argv[2];
     // // Crear un nuevo proceso
     // pid_t pid = fork();
 
@@ -193,7 +195,7 @@ int main() {
 
     // // Bucle principal del daemon
     while (1) {
-        runDeamon();
+        runDeamon(sourcePath, destinationPath);
 
         sleep(5);  // Ejemplo: Esperar 1 segundo antes de repetir el bucle
     }

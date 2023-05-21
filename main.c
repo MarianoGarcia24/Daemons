@@ -161,42 +161,39 @@ int runDeamon(char* sourcePath, char* destinationPath){
 int main(int argc, char* argv[]) {
     char* sourcePath = argv[1];
     char* destinationPath = argv[2];
-    // // Crear un nuevo proceso
-    // pid_t pid = fork();
+    // Crear un nuevo proceso
+    pid_t pid = fork();
 
-    // // Salir si el fork falla
-    // if (pid < 0) {
-    //     printf("Error al crear el proceso hijo.\n");
-    //     exit(1);
-    // }
+    // Salir si el fork falla
+    if (pid < 0) {
+        printf("Error al crear el proceso hijo.\n");
+        exit(1);
+    }
 
-    // // Salir del proceso padre
-    // if (pid > 0) {
-    //     exit(0);
-    // }
+    // Salir del proceso padre
+    if (pid > 0) {
+        exit(0);
+    }
 
-    // // Establecer el modo de archivo y directorio
-    // umask(0);
+    // Establecer el modo de archivo y directorio
+    umask(0);
 
-    // // Crear una nueva sesión de grupo
-    // pid_t sid = setsid();
-    // if (sid < 0) {
-    //     printf("Error al crear la nueva sesión de grupo.\n");
-    //     exit(1);
-    // }
+    // Crear una nueva sesión de grupo
+    pid_t sid = setsid();
+    if (sid < 0) {
+        printf("Error al crear la nueva sesión de grupo.\n");
+        exit(1);
+    }
 
-    // // Cerrar los descriptores de archivo estándar
-    // close(STDIN_FILENO);
-    // close(STDOUT_FILENO);
-    // close(STDERR_FILENO);
+    // Cerrar los descriptores de archivo estándar
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
+    close(STDERR_FILENO);
 
-    // // Establecer el manejador de señales
-    // signal(SIGTERM, signalHandler);  // Por ejemplo, manejar SIGTERM
 
-    // // Bucle principal del daemon
+    // Bucle principal del daemon
     while (1) {
         runDeamon(sourcePath, destinationPath);
-
         sleep(5);  // Ejemplo: Esperar 1 segundo antes de repetir el bucle
     }
 

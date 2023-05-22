@@ -8,6 +8,7 @@
 #include <time.h>
 #include <dirent.h>
 #include <string.h>
+#include <syslog.h>
 
 void signalHandler(int sig) {
     // Manejar señales aquí
@@ -35,7 +36,7 @@ void copyDirectory(char* sourceDir, char* destDir) {
     struct dirent* entry;
 
     // Crear el directorio de destino si no existe
-    mkdir(destDir);
+    mkdir(destDir,0777);
 
     // Abrir el directorio de origen
     dir = opendir(sourceDir);
@@ -101,7 +102,7 @@ int runDeamon(char* sourcePath, char* destinationPath){
     struct stat fileStat;
     
     if (stat(sourcePath,&fileStat) == -1){
-        return 1;
+        return 0;
     }
 
     time_t modifiedTime = fileStat.st_mtime;
@@ -112,15 +113,16 @@ int runDeamon(char* sourcePath, char* destinationPath){
 
     dir = opendir(destinationPath);
     if (dir == NULL){
-        mkdir(destinationPath);
+        mkdir(destinationPath,0777);
         copyDirectory(sourcePath,destinationPath);
+        return 1;
     }
     else{
         //obtenemos timestamp de carpeta Backup
         struct stat fileStatBackup;
 
         if (stat(destinationPath,&fileStatBackup) == -1){
-            return 1;
+            return 0;
         }
         time_t modifiedTimeBackup = fileStatBackup.st_mtime;
         struct dirent* entryBckp;
@@ -139,6 +141,7 @@ int runDeamon(char* sourcePath, char* destinationPath){
 
         if (modifiedTime > modifiedTimeBackup){
            copyDirectory(sourcePath,destinationPath);
+           return 1;
         }
         else{
             DIR * sourcePathDir;
@@ -148,13 +151,17 @@ int runDeamon(char* sourcePath, char* destinationPath){
             entry = readdir(sourcePathDir);
             time_t modifiedTimeEntry;
 
-            if (isModified(entry,sourcePathDir,sourcePath,modifiedTimeBackup))
+            if (isModified(entry,sourcePathDir,sourcePath,modifiedTimeBackup)){
                 copyDirectory(sourcePath,destinationPath);
+            	return 1;
+            }
+            else
+            	return 0;
                        
         }
     }
-    return 0;
 }
+
 
 
 
@@ -163,39 +170,44 @@ int main(int argc, char* argv[]) {
     char* destinationPath = argv[2];
     // Crear un nuevo proceso
     pid_t pid = fork();
-
+    printf("Proceso creado\n");
     // Salir si el fork falla
     if (pid < 0) {
         printf("Error al crear el proceso hijo.\n");
         exit(1);
     }
 
-    // Salir del proceso padre
-    if (pid > 0) {
-        exit(0);
-    }
+    //Salir del proceso padre
+    //if (pid > 0) {
+    //    exit(0);
+    //}
 
     // Establecer el modo de archivo y directorio
-    umask(0);
+    openlog("simple_daemon", LOG_PID, LOG_DAEMON);
 
-    // Crear una nueva sesión de grupo
-    pid_t sid = setsid();
-    if (sid < 0) {
-        printf("Error al crear la nueva sesión de grupo.\n");
-        exit(1);
-    }
 
     // Cerrar los descriptores de archivo estándar
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
+    //close(STDIN_FILENO);
+    //close(STDOUT_FILENO);
+    //close(STDERR_FILENO);
 
 
     // Bucle principal del daemon
+
     while (1) {
-        runDeamon(sourcePath, destinationPath);
+        printf("*bucle?\n");
+        if (runDeamon(sourcePath, destinationPath)){
+        	//el Daemon hizo una copia de seguridad.
+        	printf("andandooo\n");
+        	syslog(LOG_NOTICE, "Se ha realizado una nueva copia de seguridad...");
+        }
+        else{
+        	printf("not in my house");
+        }
         sleep(5);  // Ejemplo: Esperar 1 segundo antes de repetir el bucle
     }
 
-    return 0;
+    closelog();
+	
+    exit(EXIT_SUCCESS);
 }

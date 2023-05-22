@@ -169,27 +169,30 @@ int main(int argc, char* argv[]) {
     char* sourcePath = argv[1];
     char* destinationPath = argv[2];
     // Crear un nuevo proceso
+    pid_t padre = getpid();
     pid_t pid = fork();
     printf("Proceso creado\n");
     // Salir si el fork falla
+
     if (pid < 0) {
         printf("Error al crear el proceso hijo.\n");
         exit(1);
     }
 
     //Salir del proceso padre
-    //if (pid > 0) {
-    //    exit(0);
-    //}
+    if (pid > 0) {
+    	printf("%d\n",padre);
+        exit(0);
+    }
 
     // Establecer el modo de archivo y directorio
     openlog("simple_daemon", LOG_PID, LOG_DAEMON);
 
 
     // Cerrar los descriptores de archivo estándar
-    //close(STDIN_FILENO);
-    //close(STDOUT_FILENO);
-    //close(STDERR_FILENO);
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
+    close(STDERR_FILENO);
 
 
     // Bucle principal del daemon
@@ -207,7 +210,7 @@ int main(int argc, char* argv[]) {
         sleep(5);  // Ejemplo: Esperar 1 segundo antes de repetir el bucle
     }
 
-    closelog();
+    closel-uog();
 	
     exit(EXIT_SUCCESS);
 }

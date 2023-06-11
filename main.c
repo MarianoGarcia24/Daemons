@@ -181,12 +181,11 @@ int main(int argc, char* argv[]) {
 
     //Salir del proceso padre
     if (pid > 0) {
-    	printf("%d\n",padre);
         exit(0);
     }
 
     // Establecer el modo de archivo y directorio
-    openlog("simple_daemon", LOG_PID, LOG_DAEMON);
+    openlog("backupd", LOG_PID, LOG_DAEMON);
 
 
     // Cerrar los descriptores de archivo estándar
@@ -198,19 +197,17 @@ int main(int argc, char* argv[]) {
     // Bucle principal del daemon
 
     while (1) {
-        printf("*bucle?\n");
         if (runDeamon(sourcePath, destinationPath)){
         	//el Daemon hizo una copia de seguridad.
-        	printf("andandooo\n");
         	syslog(LOG_NOTICE, "Se ha realizado una nueva copia de seguridad...");
         }
         else{
-        	printf("not in my house");
+		syslog(LOG_PERROR, "Fallo el daemon");
         }
         sleep(5);  // Ejemplo: Esperar 1 segundo antes de repetir el bucle
     }
 
-    closel-uog();
+    closelog();
 	
     exit(EXIT_SUCCESS);
 }

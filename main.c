@@ -10,10 +10,6 @@
 #include <string.h>
 #include <syslog.h>
 
-void signalHandler(int sig) {
-    // Manejar señales aquí
-}
-
 void copyFile(char* sourcePath, char* destPath) {
     FILE* sourceFile = fopen(sourcePath, "rb");
     FILE* destFile = fopen(destPath, "wb");
@@ -106,8 +102,7 @@ int runDeamon(char* sourcePath, char* destinationPath){
     }
 
     time_t modifiedTime = fileStat.st_mtime;
-    
-    // char *destinationPath = "./.test_backup";
+   
 
     DIR *dir;
 
@@ -202,7 +197,6 @@ int main(int argc, char* argv[]) {
         	syslog(LOG_NOTICE, "Se ha realizado una nueva copia de seguridad...");
         }
         else{
-		syslog(LOG_PERROR, "Fallo el daemon");
         }
         sleep(5);  // Ejemplo: Esperar 1 segundo antes de repetir el bucle
     }
